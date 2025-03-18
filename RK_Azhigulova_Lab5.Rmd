@@ -1,0 +1,141 @@
+---
+title: "Comparing the means of two groups"
+author: "Rida Kanatbekovna Azhigulova, R lab 5, BIO/MTH-245 - Applied Statistics for the Life Sciences"
+date: "2025-02-24"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r, include=FALSE}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(broom)
+library(car)  # For Levene's test
+```
+
+## Introduction
+
+This is an R Lab 5 to compare the means of two groups. To solve the problems (#1, #2 and #3) I used bumpus, countries and leg shaving csv provided by Professor.
+
+
+## Analysis of Bumpus Data
+
+```{r load-libraries-bumpus}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(car)  # For Levene's test
+```
+
+```{r load-bumpus-data}
+# Load the dataset
+bumpus <- read.csv("./bumpus.csv", stringsAsFactors = FALSE)
+```
+
+```{r bumpus-summary}
+# Summary statistics by survival status
+bumpus %>%
+  group_by(survival) %>%
+  summarise(mean_weight = mean(weight_g, na.rm = TRUE),
+            sd_weight = sd(weight_g, na.rm = TRUE),
+            n = n())
+```
+
+```{r bumpus-histogram, fig.width=7, fig.height=5}
+# Plot histogram of body weight distribution
+ggplot(bumpus, aes(x = weight_g, fill = as.factor(survival))) +
+  geom_histogram(alpha = 0.5, position = "identity", bins = 20) +
+  scale_fill_manual(values = c("red", "blue"), labels = c("Died", "Survived")) +
+  labs(title = "Body Weight Distribution of Surviving vs Non-Surviving Birds",
+       x = "Weight (g)",
+       y = "Count",
+       fill = "Survival") +
+  theme_minimal()
+```
+Interpretation: 
+The histogram compares the body weight distributions of surviving (blue) and non-surviving (red) English house sparrows. The distributions show some overlap but also key differences. Surviving birds tend to have a higher concentration of weights around 24-26 grams, whereas non-surviving birds exhibit a slightly broader distribution with a peak near 26 grams and more individuals in the higher weight range (above 28 grams). The shape suggests that while weight might have influenced survival, other factors could also be at play. The distributions appear approximately normal, though some skewness is present. To confirm differences in means and variance, statistical tests like Welch’s t-test and Levene’s test should be performed.
+
+
+```{r bumpus-t-test}
+# Perform and print t-test for weight by survival status
+t_test_result <- t.test(weight_g ~ survival, data = bumpus, var.equal = FALSE)
+print(t_test_result)
+```
+
+```{r bumpus-levene}
+# Levene's test for equality of variances
+leveneTest(weight_g ~ as.factor(survival), data = bumpus)
+```
+
+## Analysis of Countries Data
+
+```{r load-countries-data}
+# Load dataset for countries
+countries <- read.csv("countries.csv")
+```
+
+```{r countries-difference}
+# Create a new column for differences
+countries$difference <- countries$ecological_footprint_2012 - countries$ecological_footprint_2000
+
+# Summary statistics of the difference
+summary(countries$difference)
+```
+
+```{r countries-histogram, fig.width=7, fig.height=5}
+# Plot histogram of ecological footprint changes
+hist(countries$difference, 
+     main = "Histogram of Ecological Footprint Changes (2012 - 2000)", 
+     xlab = "Change in Ecological Footprint",
+     col = "lightblue", 
+     border = "black")
+```
+Interpretation:
+The histogram displays the distribution of changes in ecological footprint between 2000 and 2012. Most countries show small decreases in their ecological footprint, with the majority of values concentrated around -1 and 0. A few countries exhibit larger reductions (e.g., -5 or -6), but there are no substantial increases. This suggests that, overall, ecological footprints have either remained stable or slightly declined over time. A paired t-test would help determine whether the observed changes are statistically significant.
+
+
+```{r countries-t-test}
+# Perform and print paired t-test for ecological footprint data
+print(t.test(countries$ecological_footprint_2012, 
+             countries$ecological_footprint_2000, 
+             paired = TRUE))
+```
+
+## Analysis of Leg Shaving Data
+
+```{r load-legshaving-data}
+# Load dataset for leg shaving experiment
+leg_shaving <- read.csv("leg shaving.csv")
+```
+
+```{r legshaving-structure}
+# Check the structure of the leg shaving dataset
+str(leg_shaving)
+```
+
+```{r legshaving-summary}
+# Summary statistics for leg shaving dataset
+summary(leg_shaving)
+```
+
+```{r legshaving-t-test}
+# Perform and print paired t-test for hair width changes (shaved vs. unshaved legs)
+# Perform paired t-test
+ttest_result <- t.test(leg_shaving$hair_width_change_test, 
+                       leg_shaving$hair_width_change_control, 
+                       paired = TRUE)
+
+# Tidy the t-test results using broom
+ttest_tidy <- tidy(ttest_result)
+
+# Print the results in a nicely formatted table
+knitr::kable(ttest_tidy, caption = "Paired t-test Results for Hair Width Changes")
+```
+Interpretation: The p-value suggests no significant difference in hair thickness due to shaving. Confidence interval includes zero, reinforcing the lack of significant effect.
